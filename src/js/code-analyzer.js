@@ -1,138 +1,100 @@
 import * as esprima from 'esprima';
 import * as escodegen from 'escodegen';
-export {main, tab, parseCode};
+export {main, parseCode};
 
+
+// use filter to take out null elements
 const parseCode = (codeToParse) => {
     return esprima.parseScript(codeToParse, {loc:true});
 
 
 };
+let symbols = [];
 const main = (code) =>{
     let json = esprima.parseScript(code, {loc:true});
-    return Body(json.body);
+    let env = [];
+    json.body = Body(json.body, env);
+    return json;
 };
 
-const Body = (body)=>{
-    let ret = [];
+const Body = (body, env)=>{
+
     for(let i=0; i<body.length; i++){
-        let y = body[i];
-        const funcObj = {FunctionDeclaration: functionDeclaration, VariableDeclaration: variableDeclaration, ExpressionStatement: assignmentExpression, WhileStatement: whileStatement, ReturnStatement: returnStatement, IfStatement: ifStatement ,ForStatement: forStatement };
-        let type = y.type;
-        switch (type) {
-        case 'IfStatement':
-            ret = ret.concat(funcObj[type](y, 'If Statement'));
+        const funcObj = {FunctionDeclaration: functionDeclaration, VariableDeclaration: variableDeclaration, ExpressionStatement: assignmentExpression, WhileStatement: whileStatement, ReturnStatement: returnStatement, IfStatement: ifStatement, BlockStatement: blockStatement};
+        let type = body[i].type;
+        let newEnv = [];
+        switch (type){
+        case 'IfStatement' || 'WhileStatement':
+            newEnv = deepCopy(env);
+            body[i] = funcObj[type](body[i], newEnv);
             break;
         default:
-            ret = ret.concat(funcObj[type](y));
+            body[i] = funcObj[type](body[i], env);
             break;
         }
+
     }
-    return ret;
+    return body;
 };
 
-const functionDeclaration = (func) =>{
+const functionDeclaration = (func, env) =>{
     let params = func.params;
-    let line = func.loc.start.line;
-    let type = 'Function Declaration';
-    let name = func.id.name;
-
-    let ret =[{line: line, type: type, name: name, condition: '', value: ''}];
     params.forEach((p)=>{
-        let pLine = p.loc.start.line;
-        ret.push({line: pLine, type: 'Variable Declaration',name: p.name, condition: '', value: ''});
+        symbols.push({name: p.name, value: undefined});
     });
-    return ret.concat(Body(func.body.body));
+    let body = Body(func.body, env);
+    func.body = body;
+    return func;
 };
-const variableDeclaration = (vardec) => {
-    let ret = [];
-    let type = 'Variable Declaration';
+
+const variableDeclaration = (vardec, env) => {
     vardec.declarations.forEach((v)=>{
-        let line = v.loc.start.line;
         let value = v.init === null ? '' :  escodegen.generate(v.init);
-        ret.push({line: line, type: type, name: v.id.name, condition: '', value: value});
+        env.push({name: v.id.name, value: value});
     });
-    return ret;
+    return null;
+
 };
 
-const assignmentExpression = (exp) =>{
+const assignmentExpression = (exp, env) =>{
     let e =exp.expression;
-    let line = e.loc.start.line;
-    let type = 'Assignment Expression';
+    let name = e.left.name;
     let value = escodegen.generate(e.right);
-    return [{line: line, type: type, name: e.left.name, condition: '', value: value}];
+    env.push({name:name, value:value});
+    return null;
 };
-const whileStatement = (stat) =>{
-    let line = stat.loc.start.line;
-    let type = 'While Statement';
+const whileStatement = (stat, env) =>{
     let condition = escodegen.generate(stat.test);
-    let ret = [{line: line, type: type, name: '', condition: condition, value: ''}];
-
-    let body = block(stat.body.type, stat.body);
-    return ret.concat(body);
+    let body = Body(stat.body, env);
+    stat.body = body;
+    return stat;
 };
-const elseIfStatement =(stat) =>{
-    let line = stat.loc.start.line;
-    let type = 'Else-if Statement';
+
+const ifStatement = (stat, env) =>{
     let condition = escodegen.generate(stat.test);
-    let ret = [{line: line, type: type, name: '', condition: condition, value: ''}];
-
-    let consequent= block(stat.consequent.type, stat.consequent);
-    ret = ret.concat(consequent);
-
-    let t = stat.alternate.type;
-    let alternate = t==='IfStatement'? elseIfStatement(stat.alternate):block(t,stat.alternate);
-
-    return ret.concat(alternate);
+    let consequent= Body(stat.consequent, env);
+    stat.consequent = consequent;
+    if(stat.alternate!==null){
+        let alternate = Body(stat.alternate, env);
+        stat.alternate = alternate;
+    }
+    return stat;
 };
-const ifStatement = (stat) =>{
-    let type = 'If Statement';
-    let line = stat.loc.start.line;
-    let condition = escodegen.generate(stat.test);
-    let ret = [{line: line, type: type, name: '', condition: condition, value: ''}];
 
-    let consequent= block(stat.consequent.type, stat.consequent);
-    ret = ret.concat(consequent);
-
-    let t = stat.alternate.type;
-    let alternate = t==='IfStatement'? elseIfStatement(stat.alternate): block(t,stat.alternate);
-
-    return ret.concat(alternate);
-};
-const returnStatement = (stat) =>{
-    let line = stat.loc.start.line;
-    let type = 'Return Statement';
+const returnStatement = (stat, env) =>{
     let value = escodegen.generate(stat.argument);
-    return [{line: line, type: type, name: '', condition: '', value: value}];
-};
-const forStatement = (stat) =>{
-    let line = stat.loc.start.line;
-    let type = 'For Statement';
-    let condition = escodegen.generate(stat.test);
-    let ret = [{line: line, type: type, name: '', condition: condition, value: ''}];
-
-    let body = block(stat.body.type, stat.body);
-    return ret.concat(body);
-};
-const block = (type, body)=>{
-    return type ==='BlockStatement'? Body(body.body): Body([body]);
+    return stat;
 };
 
-function tab(array) {
-    let a = new Array(array.length);
-    for(let i=0; i<array.length; i++){
-        a[i] = [array[i].line, array[i].type, array[i].name, array[i].condition, array[i].value];
-    }
-    let titles = [['Line', 'Type','Name', 'Condition', 'Value']];
-    let a2 = titles.concat(a);
-    let r = '<table border=2>';
-    for(let i=0; i<a2.length; i++) {
-        r += '<tr>';
-        for(let j=0; j<a2[i].length; j++){
-            r += '<td>'+a2[i][j]+'</td>';
-        }
-        r += '</tr>';
-    }
-    r += '</table>';
-
-    return r;
+const blockStatement = (body, env)=>{
+    return Body(body.body, env);
+};
+const deepCopy = (env) =>{
+    let newEnv = [];
+    env.forEach(v=>{
+        newEnv.push({name: v.name, value: v.value});
+    })
+    return newEnv;
 }
+
+

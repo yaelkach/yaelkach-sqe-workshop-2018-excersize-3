@@ -7,10 +7,11 @@ $(document).ready(function () {
         let codeToParse = $('#codePlaceholder').val();
         let parsedCode = parseCode(codeToParse);
         let arr = main(codeToParse);
-        let table = tab(arr);
-        $('#table').empty();
-        $('#table').append(table);
-        $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
+        console.log(arr);
+        // let table = tab(arr);
+        // $('#table').empty();
+        // $('#table').append(table);
+        // $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
     });
 });
 
