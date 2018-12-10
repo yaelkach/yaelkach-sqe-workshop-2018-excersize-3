@@ -21,7 +21,7 @@ const main = (code) =>{
 
 const filtr = (body) =>{
 
-}
+};
 
 const Body = (body, env)=>{
 
@@ -56,47 +56,81 @@ const functionDeclaration = (func, env) =>{
     let body = Body(func.body.body, env);
     func.body.body = body;
     return func;
+
+    //  return vardec;
+
 };
 
 const variableDeclaration = (vardec, env) => {
-    vardec.declarations.forEach((v)=>{
-        if(v.init !==null){
+    vardec.declarations.forEach((v) => {
+        if (v.init.type === 'ArrayExpression') {
+            let arr = v.init.elements;
+            for (let i = 0; i < arr.length; i++) {
+                let a = sub(arr[i], env);
+                arr[i] = a;
+            }
+        }
+        else if (v.init !== null) {
             sub(v.init, env);
         }
         let objCopy = JSON.parse(JSON.stringify(v.init));
         env.push({name: v.id.name, obj:objCopy});
-    });
-    return null;
-   //  return vardec;
 
-};
-const inSymbolTable = (name) =>{
+    });
+    return null;};
+
+const inSymbolTable = (name) => {
     let found = false;
-    for(let i=0; i<symbols.length&&!found; i++){
-        found = symbols[i].name===name? true:false;
+    for (let i = 0; i < symbols.length && !found; i++) {
+        found = symbols[i].name === name ? true : false;
     }
     return found;
 };
 
-const assignmentExpression = (exp, env) =>{
-    let e =exp.expression;
-    let name = e.left.name;
-    let s = sub(e.right, env);
-    let copyObj = JSON.parse(JSON.stringify(s));
-    e.right = s;
+const assignmentExpression = (exp, env) => {
+    let e = exp.expression;
+    if (e.left.type === 'MemberExpression') {
+        let name = e.left.object.name;
+        let prop = sub(e.left.property, env);
+        //  let copyObj = JSON.parse(JSON.stringify(s));
+        let s = sub(e.right, env);
+        e.right = s;
+        let found = false;
+        for (let i = 0; i < env.length && !found; i++) {
+            if (env[i].name === name) {
+                found = true;
+                let obj = env[i].obj;
+                if (obj.type === 'ArrayExpression') {
+                    if(prop.type === 'Literal'){
+                        obj.elements[prop.value] = s;
+                    }
 
-    let found = false;
-    for (let i =0; i<env.length&&!found; i++){
-        if(env[i].name === name){
-            env[i].obj = copyObj;
-            found =true;
+                }
+            }
         }
+        let inSymTab = inSymbolTable(name);
+        //return inSymTab ? exp : null;
+        return exp;
     }
-    let inSymTab = inSymbolTable(name);
-    return inSymTab? exp: null;
+    else {
+        let name = e.left.name;
+        let s = sub(e.right, env);
+        let copyObj = JSON.parse(JSON.stringify(s));
+        e.right = s;
+
+        let found = false;
+        for (let i = 0; i < env.length && !found; i++) {
+            if (env[i].name === name) {
+                env[i].obj = copyObj;
+                found = true;
+            }
+        }
+        let inSymTab = inSymbolTable(name);
+        return inSymTab ? exp : null;
+    }
     //return exp;
 };
-const whileStatement = (stat, env) =>{
+const whileStatement = (stat, env) => {
     let test = sub(stat.test, env);
     stat.test = test;
     let body = block(stat.body.type, stat.body, env);
@@ -104,40 +138,40 @@ const whileStatement = (stat, env) =>{
     return stat;
 };
 
-const ifStatement = (stat, env, newEnv) =>{
+const ifStatement = (stat, env, newEnv) => {
     let test = sub(stat.test, env);
     stat.test = test;
-    let consequent=  block(stat.consequent.type, stat.consequent,newEnv);
+    let consequent = block(stat.consequent.type, stat.consequent, newEnv);
     stat.consequent = consequent;
-    if(stat.alternate!==null){
-        let alternate = block(stat.alternate.type,stat.alternate, env);
+    if (stat.alternate !== null) {
+        let alternate = block(stat.alternate.type, stat.alternate, env);
         stat.alternate = alternate;
     }
     return stat;
 };
 
-const returnStatement = (stat, env) =>{
-    let argument = sub(stat.argument,env);
+const returnStatement = (stat, env) => {
+    let argument = sub(stat.argument, env);
     stat.argument = argument;
     return stat;
 };
 
-const block = (type, body,env)=>{
-    if(type === 'BlockStatement'){
+const block = (type, body, env) => {
+    if (type === 'BlockStatement') {
         let b = Body(body.body, env);
         body.body = b;
         return body;
     }
-    else{
-        return Body([body],env);
+    else {
+        return Body([body], env);
     }
     //   return type ==='BlockStatement'? Body(body.body,env): Body([body],env);
 };
 
-const sub = (exp ,env)=>{
+const sub = (exp, env) => {
     let type = exp.type;
     let ret;
-    switch(type){
+    switch (type) {
     case 'BinaryExpression':
         ret = binaryExpression(exp, env);
         break;
@@ -146,11 +180,26 @@ const sub = (exp ,env)=>{
         let name = exp.name;
         let found = inSymbolTable(name);
         if (!found) {
-            ret = subLocal(exp,env);
+            ret = subLocal(exp, env);
+        }
+        else {
+            ret = exp;
+        }
+        break;
+    case 'MemberExpression':
+        let nam = exp.object.name;
+        let prop = sub(exp.property, env);
+        let num = prop.value;
+        //  let copyObj = JSON.parse(JSON.stringify(s));
+        let found2 = inSymbolTable(nam);
+        if(!found2){
+            let arr = (subLocal(exp.object, env)).elements;
+            ret = arr[num];
         }
         else{
             ret = exp;
         }
+
         break;
     default:
         ret = exp;
@@ -158,22 +207,16 @@ const sub = (exp ,env)=>{
     return ret;
 
 };
-const subLocal = (exp,env)=>{
+const subLocal = (exp, env) => {
     let found = false;
-    for(let i=0; i<env.length&&!found; i++){
-        if(env[i].name === exp.name){
+    for (let i = 0; i < env.length && !found; i++) {
+        if (env[i].name === exp.name) {
             return env[i].obj;
-            // let type = env[i].obj.type;
-            // if(type ==='VariableDeclarator'){
-            //     let s = env[i].obj.init;
-            //     return s;
-            // }
-
         }
     }
 };
 
-const binaryExpression = (exp, env)=>{
+const binaryExpression = (exp, env) => {
     let left = exp.left;
     let right = exp.right;
     exp.left = sub(left, env);
@@ -181,12 +224,10 @@ const binaryExpression = (exp, env)=>{
     return exp;
 };
 
-const deepCopy = (env) =>{
+const deepCopy = (env) => {
     let newEnv = [];
-    env.forEach((v)=>{
+    env.forEach((v) => {
         newEnv.push({name: v.name, value: v.value});
     });
     return newEnv;
 };
-
-
