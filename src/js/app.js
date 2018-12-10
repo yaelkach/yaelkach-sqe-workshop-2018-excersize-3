@@ -6,6 +6,7 @@ $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
         let codeToParse = $('#codePlaceholder').val();
         let parsedCode = parseCode(codeToParse);
+        console.log(parsedCode);
         let arr = main(codeToParse);
         console.log(arr);
         // let table = tab(arr);

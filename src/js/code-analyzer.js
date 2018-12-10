@@ -5,13 +5,13 @@ export {main, parseCode};
 
 // use filter to take out null elements
 const parseCode = (codeToParse) => {
-    return esprima.parseScript(codeToParse, {loc:true});
+    return esprima.parseScript(codeToParse);
 
 
 };
 let symbols = [];
 const main = (code) =>{
-    let json = esprima.parseScript(code, {loc:true});
+    let json = esprima.parseScript(code);
     let env = [];
     json.body = Body(json.body, env);
     return json;
@@ -20,11 +20,15 @@ const main = (code) =>{
 const Body = (body, env)=>{
 
     for(let i=0; i<body.length; i++){
-        const funcObj = {FunctionDeclaration: functionDeclaration, VariableDeclaration: variableDeclaration, ExpressionStatement: assignmentExpression, WhileStatement: whileStatement, ReturnStatement: returnStatement, IfStatement: ifStatement, BlockStatement: blockStatement};
+        const funcObj = {FunctionDeclaration: functionDeclaration, VariableDeclaration: variableDeclaration, ExpressionStatement: assignmentExpression, WhileStatement: whileStatement, ReturnStatement: returnStatement, IfStatement: ifStatement};
         let type = body[i].type;
         let newEnv = [];
         switch (type){
-        case 'IfStatement' || 'WhileStatement':
+        case 'IfStatement':
+            newEnv = deepCopy(env);
+            body[i] = funcObj[type](body[i], env, newEnv);
+            break;
+        case 'WhileStatement':
             newEnv = deepCopy(env);
             body[i] = funcObj[type](body[i], newEnv);
             break;
@@ -42,40 +46,54 @@ const functionDeclaration = (func, env) =>{
     params.forEach((p)=>{
         symbols.push({name: p.name, value: undefined});
     });
-    let body = Body(func.body, env);
-    func.body = body;
+    let body = Body(func.body.body, env);
+    func.body.body = body;
     return func;
 };
 
 const variableDeclaration = (vardec, env) => {
     vardec.declarations.forEach((v)=>{
-        let value = v.init === null ? '' :  escodegen.generate(v.init);
-        env.push({name: v.id.name, value: value});
+        if(v.init !==null){
+            sub(v.init, env);
+        }
+        env.push({name: v.id.name, obj: v.init});
     });
-    return null;
+    //return null;
+    return vardec;
 
+};
+const inSymbolTable = (name) =>{
+    let found = false;
+    for(let i=0; i<symbols.length&&!found; i++){
+        found = symbols[i].name===name? true:false;
+    }
+    return found;
 };
 
 const assignmentExpression = (exp, env) =>{
     let e =exp.expression;
     let name = e.left.name;
     let value = escodegen.generate(e.right);
-    env.push({name:name, value:value});
-    return null;
+    let s = sub(e.right, env);
+    env.push({name:name, obj:e.right});
+    let found = inSymbolTable(name);
+    return found? exp: null;
 };
 const whileStatement = (stat, env) =>{
     let condition = escodegen.generate(stat.test);
-    let body = Body(stat.body, env);
+    let body = block(stat.body.type, stat.body, env);
     stat.body = body;
     return stat;
 };
 
-const ifStatement = (stat, env) =>{
+const ifStatement = (stat, env, newEnv) =>{
     let condition = escodegen.generate(stat.test);
-    let consequent= Body(stat.consequent, env);
+    let consequent=  block(stat.consequent.type, stat.consequent,newEnv);
+    console.log('env ' + env);
+    console.log('new env' + newEnv);
     stat.consequent = consequent;
     if(stat.alternate!==null){
-        let alternate = Body(stat.alternate, env);
+        let alternate = block(stat.alternate.type,stat.alternate, env);
         stat.alternate = alternate;
     }
     return stat;
@@ -86,15 +104,69 @@ const returnStatement = (stat, env) =>{
     return stat;
 };
 
-const blockStatement = (body, env)=>{
-    return Body(body.body, env);
+const block = (type, body,env)=>{
+    if(type === 'BlockStatement'){
+        let b = Body(body.body, env);
+        body.body = b;
+        return body;
+    }
+    else{
+        return Body([body],env);
+    }
+    //   return type ==='BlockStatement'? Body(body.body,env): Body([body],env);
 };
+
+const sub = (exp ,env)=>{
+    let type = exp.type;
+    let ret;
+    switch(type){
+    case 'BinaryExpression':
+        ret = binaryExpression(exp, env);
+        break;
+
+    case 'Identifier':
+        let name = exp.name;
+        let found = inSymbolTable(name);
+        if (!found) {
+            ret = subLocal(exp,env);
+        }
+        else{
+            ret = exp;
+        }
+        break;
+    default:
+        ret = exp;
+    }
+    return ret;
+
+};
+const subLocal = (exp,env)=>{
+    let found = false;
+    for(let i=0; i<env.length&&!found; i++){
+        if(env[i].name === exp.name){
+            let type = env[i].obj.type;
+            if(type ==='VariableDeclarator'){
+                let s = env[i].obj.init;
+                return s;
+            }
+
+        }
+    }
+};
+
+const binaryExpression = (exp, env)=>{
+    let left = exp.left;
+    let right = exp.right;
+    exp.left = sub(left, env);
+    exp.right = sub(right, env);
+};
+
 const deepCopy = (env) =>{
     let newEnv = [];
-    env.forEach(v=>{
+    env.forEach((v)=>{
         newEnv.push({name: v.name, value: v.value});
-    })
+    });
     return newEnv;
-}
+};
 
 
