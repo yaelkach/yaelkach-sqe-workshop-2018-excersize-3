@@ -14,8 +14,14 @@ const main = (code) =>{
     let json = esprima.parseScript(code);
     let env = [];
     json.body = Body(json.body, env);
+    let jsonFiltered = filtr(json.body);
+    //console.log(escodegen.generate(json));
     return json;
 };
+
+const filtr = (body) =>{
+
+}
 
 const Body = (body, env)=>{
 
@@ -45,6 +51,7 @@ const functionDeclaration = (func, env) =>{
     let params = func.params;
     params.forEach((p)=>{
         symbols.push({name: p.name, value: undefined});
+        env.push({name: p.name, obj: undefined});
     });
     let body = Body(func.body.body, env);
     func.body.body = body;
@@ -56,10 +63,11 @@ const variableDeclaration = (vardec, env) => {
         if(v.init !==null){
             sub(v.init, env);
         }
-        env.push({name: v.id.name, obj: v.init});
+        let objCopy = JSON.parse(JSON.stringify(v.init));
+        env.push({name: v.id.name, obj:objCopy});
     });
-    //return null;
-    return vardec;
+    return null;
+   //  return vardec;
 
 };
 const inSymbolTable = (name) =>{
@@ -73,24 +81,33 @@ const inSymbolTable = (name) =>{
 const assignmentExpression = (exp, env) =>{
     let e =exp.expression;
     let name = e.left.name;
-    let value = escodegen.generate(e.right);
     let s = sub(e.right, env);
-    env.push({name:name, obj:e.right});
-    let found = inSymbolTable(name);
-    return found? exp: null;
+    let copyObj = JSON.parse(JSON.stringify(s));
+    e.right = s;
+
+    let found = false;
+    for (let i =0; i<env.length&&!found; i++){
+        if(env[i].name === name){
+            env[i].obj = copyObj;
+            found =true;
+        }
+    }
+    let inSymTab = inSymbolTable(name);
+    return inSymTab? exp: null;
+    //return exp;
 };
 const whileStatement = (stat, env) =>{
-    let condition = escodegen.generate(stat.test);
+    let test = sub(stat.test, env);
+    stat.test = test;
     let body = block(stat.body.type, stat.body, env);
     stat.body = body;
     return stat;
 };
 
 const ifStatement = (stat, env, newEnv) =>{
-    let condition = escodegen.generate(stat.test);
+    let test = sub(stat.test, env);
+    stat.test = test;
     let consequent=  block(stat.consequent.type, stat.consequent,newEnv);
-    console.log('env ' + env);
-    console.log('new env' + newEnv);
     stat.consequent = consequent;
     if(stat.alternate!==null){
         let alternate = block(stat.alternate.type,stat.alternate, env);
@@ -100,7 +117,8 @@ const ifStatement = (stat, env, newEnv) =>{
 };
 
 const returnStatement = (stat, env) =>{
-    let value = escodegen.generate(stat.argument);
+    let argument = sub(stat.argument,env);
+    stat.argument = argument;
     return stat;
 };
 
@@ -144,11 +162,12 @@ const subLocal = (exp,env)=>{
     let found = false;
     for(let i=0; i<env.length&&!found; i++){
         if(env[i].name === exp.name){
-            let type = env[i].obj.type;
-            if(type ==='VariableDeclarator'){
-                let s = env[i].obj.init;
-                return s;
-            }
+            return env[i].obj;
+            // let type = env[i].obj.type;
+            // if(type ==='VariableDeclarator'){
+            //     let s = env[i].obj.init;
+            //     return s;
+            // }
 
         }
     }
@@ -159,6 +178,7 @@ const binaryExpression = (exp, env)=>{
     let right = exp.right;
     exp.left = sub(left, env);
     exp.right = sub(right, env);
+    return exp;
 };
 
 const deepCopy = (env) =>{
