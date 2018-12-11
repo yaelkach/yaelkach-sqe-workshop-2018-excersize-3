@@ -5,9 +5,12 @@ import {main, tab} from './code-analyzer';
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
         let codeToParse = $('#codePlaceholder').val();
+        let arg =  $('#arguments').val();
         let parsedCode = parseCode(codeToParse);
+        let parsedArguments = parseCode(arg);
+        console.log(parsedArguments);
         console.log(parsedCode);
-        let arr = main(codeToParse);
+        let arr = main(codeToParse, arg);
         console.log(arr);
         // let table = tab(arr);
         // $('#table').empty();

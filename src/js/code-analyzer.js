@@ -10,10 +10,12 @@ const parseCode = (codeToParse) => {
 
 };
 let symbols = [];
-const main = (code) =>{
+const main = (code, args) =>{
     let json = esprima.parseScript(code);
+    let argsJson = esprima.parseScript(args);
     let env = [];
-    json.body = Body(json.body, env);
+    let arr = argsJson.body[0].expression.expressions;
+    json.body = Body(json.body, env, arr);
     let jsonFiltered = filtr(json.body);
     //console.log(escodegen.generate(json));
     return json;
@@ -23,7 +25,7 @@ const filtr = (body) =>{
 
 };
 
-const Body = (body, env)=>{
+const Body = (body, env,args)=>{
 
     for(let i=0; i<body.length; i++){
         const funcObj = {FunctionDeclaration: functionDeclaration, VariableDeclaration: variableDeclaration, ExpressionStatement: assignmentExpression, WhileStatement: whileStatement, ReturnStatement: returnStatement, IfStatement: ifStatement};
@@ -38,6 +40,9 @@ const Body = (body, env)=>{
             newEnv = deepCopy(env);
             body[i] = funcObj[type](body[i], newEnv);
             break;
+        case 'FunctionDeclaration':
+            body[i] = funcObj[type](body[i],env,args);
+            break;
         default:
             body[i] = funcObj[type](body[i], env);
             break;
@@ -47,12 +52,12 @@ const Body = (body, env)=>{
     return body;
 };
 
-const functionDeclaration = (func, env) =>{
+const functionDeclaration = (func, env, args) =>{
     let params = func.params;
-    params.forEach((p)=>{
-        symbols.push({name: p.name, value: undefined});
-        env.push({name: p.name, obj: undefined});
-    });
+    for(let i=0; i<params.length; i++){
+        symbols.push({name: params[i].name});
+        env.push({name: params[i].name, obj: args[i].right});
+    }
     let body = Body(func.body.body, env);
     func.body.body = body;
     return func;
