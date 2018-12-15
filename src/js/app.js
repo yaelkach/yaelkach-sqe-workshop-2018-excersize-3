@@ -7,7 +7,8 @@ $(document).ready(function () {
         let codeToParse = $('#codePlaceholder').val();
         let arg =  $('#arguments').val();
         let parsedCode = parseCode(codeToParse);
-        let parsedArguments = parseCode(arg);
+        let parsedArguments;
+
         console.log(parsedArguments);
         console.log(parsedCode);
         let arr = main(codeToParse, arg);
@@ -15,7 +16,8 @@ $(document).ready(function () {
         // let table = tab(arr);
         // $('#table').empty();
         // $('#table').append(table);
-        // $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
+        $('#parsedCode').val(JSON.stringify(arr, null, 2));
+
     });
 });
 
