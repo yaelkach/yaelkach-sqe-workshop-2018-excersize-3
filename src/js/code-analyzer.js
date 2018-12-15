@@ -187,7 +187,8 @@ const assignmentExpression = (exp, env) => {
 const whileStatement = (stat, env) => {
     //let subtest = sub(stat.test, env);
     let test = sub(stat.test, env, false);
-    let evaluate = sub(stat.test, env, true);
+    let testCopy = JSON.parse(JSON.stringify(test));
+    let evaluate = sub(testCopy, env, true);
     let stringTest = escodegen.generate(evaluate);
     let evalT = eval(stringTest);
     // console.log('////////////////eval' + evalTest);
@@ -202,8 +203,9 @@ const whileStatement = (stat, env) => {
 
 const ifStatement = (stat, env, newEnv) => {
     //let subtest =
-    let test = sub(stat.test, env);
-    let evaluate = sub(stat.test, env, true);
+    let test = sub(stat.test, env, false);
+    let testCopy = JSON.parse(JSON.stringify(test));
+    let evaluate = sub(testCopy, env, true);
     let stringTest = escodegen.generate(evaluate);
     let evalT = eval(stringTest);
     // console.log('////////////////eval' + evalTest);
@@ -244,16 +246,19 @@ const sub = (exp, env, evalTest) => {
     let ret;
     switch (type) {
     case 'BinaryExpression':
-        ret = binaryExpression(exp, env);
+        ret = binaryExpression(exp, env, evalTest);
         break;
 
     case 'Identifier':
         let name = exp.name;
         let found = inSymbolTable(name);
-        if (!found&&!evalTest) {
-            ret = subLocal(exp, env);
+        if (!found) {
+            ret = subLocal(exp, env, evalTest);
         }
-        else {
+        else if(evalTest) {
+            ret = subLocal(exp, env, evalTest);
+        }
+        else{
             ret = exp;
         }
         break;
@@ -264,7 +269,11 @@ const sub = (exp, env, evalTest) => {
         //  let copyObj = JSON.parse(JSON.stringify(s));
         let found2 = inSymbolTable(nam);
         if(!found2){
-            let arr = (subLocal(exp.object, env)).elements;
+            let arr = (subLocal(exp.object, env, evalTest)).elements;
+            ret = arr[num];
+        }
+        else if(evalTest){
+            let arr = (subLocal(exp.object, env, evalTest)).elements;
             ret = arr[num];
         }
         else{
@@ -293,9 +302,6 @@ const binaryExpression = (exp, env, evalTest) => {
     exp.left = sub(left, env, evalTest);
     exp.right = sub(right, env, evalTest);
     return exp;
-};
-const evalTest = (test) =>{
-
 };
 const deepCopy = (env) => {
     let newEnv = [];
