@@ -16,8 +16,9 @@ $(document).ready(function () {
         // let table = tab(arr);
         // $('#table').empty();
         // $('#table').append(table);
-        console.log((JSON.stringify(arr, null, 2).replace(/(\n)/g, '<br>')));
-        $('#parsedCode').val((JSON.stringify(arr, null, 2).replace(/(\n)/g, '<br>')));
+        console.log(arr);
+      //  $('#parsedCode').val(JSON.stringify(arr, null, 2));
+        $('#parsedCode').val(arr);
 
     });
 });

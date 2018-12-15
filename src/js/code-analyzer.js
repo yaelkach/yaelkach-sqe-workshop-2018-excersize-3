@@ -81,20 +81,23 @@ const functionDeclaration = (func, env, args) =>{
 
 const variableDeclaration = (vardec, env) => {
     vardec.declarations.forEach((v) => {
-        if (v.init.type === 'ArrayExpression') {
-            let arr = v.init.elements;
-            for (let i = 0; i < arr.length; i++) {
-                let a = sub(arr[i], env, false);
-                arr[i] = a;
+        if (v.init !== null) {
+            if (v.init.type === 'ArrayExpression') {
+                let arr = v.init.elements;
+                for (let i = 0; i < arr.length; i++) {
+                    let a = sub(arr[i], env, false);
+                    arr[i] = a;
+                }
             }
+            else {
+                sub(v.init, env, false);
+            }
+            let objCopy = JSON.parse(JSON.stringify(v.init));
+            env.push({name: v.id.name, obj:objCopy});
         }
-        else if (v.init !== null) {
-            sub(v.init, env, false);
-        }
-        let objCopy = JSON.parse(JSON.stringify(v.init));
-        env.push({name: v.id.name, obj:objCopy});
-
-    });
+        else{
+            env.push({name: v.id.name, obj:undefined});
+        }});
     return null;};
 
 const globalVarDeclaration = (vardec,env)=>{
@@ -247,7 +250,8 @@ const subMemberExpression = (exp,env,evalTest) =>{
     let ret;
     let nam = exp.object.name;
     let prop = sub(exp.property, env, evalTest);
-    let num = prop.value;
+    //let num = prop.value;
+    let num = eval(sub(prop, env, evalTest));
     let found2 = inSymbolTable(nam);
     if(!found2){
         let arr = (subLocal(exp.object, env, evalTest)).elements;
@@ -296,8 +300,13 @@ const binaryExpression = (exp, env, evalTest) => {
 const deepCopy = (env) => {
     let newEnv = [];
     env.forEach((v) => {
-        let copyVal = JSON.parse(JSON.stringify(v.obj));
-        newEnv.push({name: v.name, obj: copyVal});
+        if(v.obj!==undefined) {
+            let copyVal = JSON.parse(JSON.stringify(v.obj));
+            newEnv.push({name: v.name, obj: copyVal});
+        }
+        else{
+            newEnv.push({name: v.name, obj: undefined});
+        }
     });
     return newEnv;
 };
