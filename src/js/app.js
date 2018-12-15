@@ -9,14 +9,15 @@ $(document).ready(function () {
         let parsedCode = parseCode(codeToParse);
         let parsedArguments;
 
-        console.log(parsedArguments);
-        console.log(parsedCode);
+      //  console.log(parsedArguments);
+       // console.log(parsedCode);
         let arr = main(codeToParse, arg);
-        console.log(arr);
+       // console.log(arr);
         // let table = tab(arr);
         // $('#table').empty();
         // $('#table').append(table);
-        $('#parsedCode').val(JSON.stringify(arr, null, 2));
+        console.log((JSON.stringify(arr, null, 2).replace(/(\n)/g, '<br>')));
+        $('#parsedCode').val((JSON.stringify(arr, null, 2).replace(/(\n)/g, '<br>')));
 
     });
 });
