@@ -120,26 +120,38 @@ describe('The javascript parser', () => {
             '    }\n' +
             '}');
     });
+    // it('testing assignment arrays2', () => {
+    //     assert.deepEqual(
+    //         main('function checkSameArr(arr){\n' +
+    //             'arr[0] = arr[1];\n' +
+    //             'let c=4;\n' +
+    //             'if(arr[0]<c){\n' +
+    //             'c = c+1;\n' +
+    //             'return c;\n' +
+    //             '}\n' +
+    //             'else{\n' +
+    //             'c=c+2;\n' +
+    //             'return arr[0];\n' +
+    //             '}\n' +
+    //             '}', '(arr=[1,2,3])', []), 'function checkSameArr(arr) {\n' +
+    //         '    arr[0] = arr[1];\n' +
+    //         '    if (arr[0] < 4) {\n' +
+    //         '        return 4 + 1;\n' +
+    //         '    } else {\n' +
+    //         '        return arr[0];\n' +
+    //         '    }\n' +
+    //         '}');
+    // });
     it('testing assignment arrays', () => {
         assert.deepEqual(
-            main('function checkSameArr(arr){\n' +
+            main('function foo(){\n' +
+                'let c=0;\n' +
+                'let arr = [1,2];\n' +
                 'arr[0] = arr[1];\n' +
-                'let c=4;\n' +
-                'if(arr[0]<c){\n' +
-                'c = c+1;\n' +
-                'return c;\n' +
-                '}\n' +
-                'else{\n' +
-                'c=c+2;\n' +
-                'return arr[0];\n' +
-                '}\n' +
-                '}', '(arr=[1,2,3])', []), 'function checkSameArr(arr) {\n' +
-            '    arr[0] = arr[1];\n' +
-            '    if (arr[0] < 4) {\n' +
-            '        return 4 + 1;\n' +
-            '    } else {\n' +
-            '        return arr[0];\n' +
-            '    }\n' +
+                'return arr[0] +c;\n' +
+                '}', '', []), 'function foo() {\n' +
+            '    arr[0] = 2;\n' +
+            '    return 2 + 0;\n' +
             '}');
     });
 

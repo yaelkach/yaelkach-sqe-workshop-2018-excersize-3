@@ -140,8 +140,7 @@ const MemberExpressionInAssignmentExpression = (e, env, symbols)=>{
         if (env[i].name === name) {
             found = true;
             let obj = env[i].obj;
-            obj.elements[prop.value] = s;
-
+            obj.elements[prop] = s;
         }
     }
 };
