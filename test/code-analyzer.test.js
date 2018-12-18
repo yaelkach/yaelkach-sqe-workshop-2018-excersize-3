@@ -19,7 +19,7 @@ describe('The javascript parser', () => {
                 'count = count+4;\n' +
                 '\n' +
                 'return z;\n' +
-                '                }', '(x=6, y=4)', []), '<pre>\n' +
+                '                }', '6, 4', []), '<pre>\n' +
             'let count;\n' +
             '\n' +
             'function loo(x, y) {\n' +
@@ -65,7 +65,7 @@ describe('The javascript parser', () => {
                 '}\n' +
                 '\n' +
                 'return z;\n' +
-                '                }', '(x=2, y=3)', []), '<pre>\n' +
+                '                }', '2,3', []), '<pre>\n' +
             'function loo(x, y) {\n' +
             '\n' +
             '<span style="background-color:green;">     while (0 < y){ </span>\n' +
@@ -93,7 +93,7 @@ describe('The javascript parser', () => {
                 'while(x<y){\n' +
                 'count = count +1;\n' +
                 '}\n' +
-                '}', '(x=6, y=4)', []), 'let count;\n' +
+                '}', '6, 4', []), 'let count;\n' +
             'function moo(x, y) {\n' +
             '    count = 0;\n' +
             '    while (x < y) {\n' +
@@ -109,7 +109,7 @@ describe('The javascript parser', () => {
                 'if(x<arr[2]){\n' +
                 'return 1;\n' +
                 '}\n' +
-                '}', '(x=6)', []), 'let arr = [\n' +
+                '}', '6', []), 'let arr = [\n' +
             '    1,\n' +
             '    2,\n' +
             '    3\n' +
@@ -120,28 +120,6 @@ describe('The javascript parser', () => {
             '    }\n' +
             '}');
     });
-    // it('testing assignment arrays2', () => {
-    //     assert.deepEqual(
-    //         main('function checkSameArr(arr){\n' +
-    //             'arr[0] = arr[1];\n' +
-    //             'let c=4;\n' +
-    //             'if(arr[0]<c){\n' +
-    //             'c = c+1;\n' +
-    //             'return c;\n' +
-    //             '}\n' +
-    //             'else{\n' +
-    //             'c=c+2;\n' +
-    //             'return arr[0];\n' +
-    //             '}\n' +
-    //             '}', '(arr=[1,2,3])', []), 'function checkSameArr(arr) {\n' +
-    //         '    arr[0] = arr[1];\n' +
-    //         '    if (arr[0] < 4) {\n' +
-    //         '        return 4 + 1;\n' +
-    //         '    } else {\n' +
-    //         '        return arr[0];\n' +
-    //         '    }\n' +
-    //         '}');
-    // });
     it('testing assignment arrays', () => {
         assert.deepEqual(
             main('function foo(){\n' +
@@ -170,7 +148,7 @@ describe('The javascript parser', () => {
                 '    }\n' +
                 '    \n' +
                 '    return z;\n' +
-                '}\n', '(x=0, y=1, z=2)', []), 'function foo(x, y, z) {\n' +
+                '}\n', '0, 1, 2', []), 'function foo(x, y, z) {\n' +
             '    while (x + 1 < z) {\n' +
             '        z = (x + 1 + (x + 1 + y)) * 2;\n' +
             '    }\n' +
@@ -185,7 +163,7 @@ describe('The javascript parser', () => {
                 'return 1;\n' +
                 'else\n' +
                 'return 0;\n' +
-                '}', '(arr=[1,2,4])', []), 'function firstElementEqual(arr) {\n' +
+                '}', '[1,2,4]', []), 'function firstElementEqual(arr) {\n' +
             '    if (arr[0] < 1)\n' +
             '        return 1;\n' +
             '    else\n' +
@@ -209,7 +187,7 @@ describe('The javascript parser', () => {
             main('let global = 0;\n' +
                 'function addGlobal(x){\n' +
                 'global = global+x;\n' +
-                '}\n', '(x=1)', []), 'let global = 0;\n' +
+                '}\n', '1', []), 'let global = 0;\n' +
             'function addGlobal(x) {\n' +
             '    global = global + x;\n' +
             '}');
@@ -231,7 +209,7 @@ describe('The javascript parser', () => {
                 '        c = c + z + 5;\n' +
                 '        return x + y + z + c;\n' +
                 '    }\n' +
-                '}\n', '(x=1, y=2, z=3)', []), 'function foo(x, y, z) {\n' +
+                '}\n', '1,2,3', []), 'function foo(x, y, z) {\n' +
             '    if (x + 1 + y < z) {\n' +
             '        return x + y + z + (0 + 5);\n' +
             '    } else if (x + 1 + y < z * 2) {\n' +

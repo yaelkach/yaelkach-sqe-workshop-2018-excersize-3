@@ -68,7 +68,7 @@ const functionDeclaration = (func, env, symbols,colors, args) =>{
     let params = func.params;
     for(let i=0; i<params.length; i++){
         symbols.push({name: params[i].name});
-        env.push({name: params[i].name, obj: args[i].right});
+        env.push({name: params[i].name, obj: args[i]});
     }
     let b = block(func.body.type,func.body, env, symbols, colors);
     func.body = b;
