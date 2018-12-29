@@ -1,5 +1,5 @@
 import assert from 'assert';
-import {main, Program} from '../src/js/code-analyzer';
+import {main, Program} from '../src/js/colorJson.js';
 
 
 describe('The javascript parser', () => {

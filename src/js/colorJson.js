@@ -1,8 +1,8 @@
 import * as esprima from 'esprima';
 import * as escodegen from 'escodegen';
-export {Program, main};
+export {Prog, main};
 
-const Program = (code, args, colors) =>{
+const Prog = (code, args, colors) =>{
     let m = main(code,args,colors);
     return colorProgram(m, colors);
 };
