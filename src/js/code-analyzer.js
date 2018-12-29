@@ -4,7 +4,7 @@ export {Program, main};
 
 const Program = (code, colors) =>{
     main(code,colors);
-    //makeStringForChart();
+    makeStringForChart();
     console.log(vertices);
     console.log(edges);
 
@@ -162,7 +162,7 @@ const elseStatement = (type, elseStat, ifStat, counter) =>{
 
 const returnStatement = (stat) => {
     index++;
-    let returnVertex = {type: 'ReturnVertex', returnArgument: escodegen.generate(stat.argument), index: index, name: 'ReturnVertex'+index};
+    let returnVertex = {type: 'ReturnVertex', returnArgument: 'return ' + escodegen.generate(stat.argument), index: index, name: 'ReturnVertex'+index};
     addEdge(returnVertex);
     vertices.push(returnVertex);
 };
@@ -202,12 +202,6 @@ const addDummyVertex = (counter) =>{
     addEdge(dummy);
 
 };
-
-const makeStringForChart = () =>{
-    let chartVertices = chartVertices();
-    let chartEdges = chartEdges();
-};
-
 const chartVertices = () =>{
     let str = '';
     vertices.forEach((vertex)=>{
@@ -231,7 +225,7 @@ const chartVertices = () =>{
                 str = str +  'operation: ' + vertex.returnArgument + '\n';
                 break;
             case 'DummyVertex':
-                str = str +  'operation: \n';
+                str = str +  'operation: !\n';
                 break;
         }
     });
@@ -250,23 +244,30 @@ const chartEdges = () =>{
     let str = '';
     edges.forEach((edge)=>{
         let from = edge.from;
-        if(from.includes('LetOrAssignmentVertex')){
+        if(edge.to === undefined){
+        }
+        else if(edge.from.includes('LetOrAssignmentVertex')||edge.from.includes('NullVertex')||edge.from.includes('DummyVertex')){
             str = str + edge.from + '->' + edge.to + '\n';
         }
-        else if (from.includes('ReturnVertex')){
-            return str;
-        }
-        else if(from.includes('IfVertex')){
-            if(edge.isConsequent!==undefined){
+        else if(edge.from.includes('IfVertex')||edge.from.includes('WhileVertex')){
+            if(edge.isConsequent){
                 str = str + edge.from + '(yes)->' + edge.to + '\n';
             }
             else{
-
+                str = str + edge.from + '(no)->' + edge.to + '\n';
             }
         }
-
     });
-}
+    return str;
+};
+
+const makeStringForChart = () =>{
+    let chartV = chartVertices();
+    let chartE = chartEdges();
+    console.log(chartV);
+    console.log(chartE);
+};
+
 
 //cond2(yes)->para
 
