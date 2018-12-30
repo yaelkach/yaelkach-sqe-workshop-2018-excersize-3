@@ -4,7 +4,8 @@ export {Prog, main};
 
 const Prog = (code, args, colors) =>{
     let m = main(code,args,colors);
-    return colorProgram(m, colors);
+    let colorsCopy = colors.slice();
+    return [colorProgram(m, colors), colorsCopy];
 };
 const main = (code,args, colors) =>{
     let symbols = [];

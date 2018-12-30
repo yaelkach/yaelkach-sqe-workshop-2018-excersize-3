@@ -4,20 +4,23 @@ export {Program, main};
 
 const Program = (code, colors) =>{
     main(code,colors);
-    makeStringForChart();
-    console.log(vertices);
-    console.log(edges);
+    return makeStringForChart();
+
 
 };
 let vertices;
 let edges;
 let index;
-let ifCount;
-const main = (code, colors) =>{
+let colors;
+let colorIndex;
+let IfCount;
+const main = (code, c) =>{
+    colors = c;
     vertices = [];
     edges = [];
     index = 0;
-    ifCount = 0;
+    IfCount = 0;
+    colorIndex = 0;
     let json = esprima.parseScript(code);
 
     globalOFunc(json.body);
@@ -30,7 +33,7 @@ const globalOFunc = (body)=>{
         if(body[i].type==='VariableDeclaration'){
             if(vertices.length===0|| vertices[vertices.length-1].type!=='LetOrAssignmentVertex'){
                 index++;
-                let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(body[i])], index: index, name: 'LetOrAssignmentVertex'+index};
+                let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(body[i])], index: index, name: 'LetOrAssignmentVertex'+index, color: 'green'};
                 addEdge(vertex);
                 vertices.push(vertex);
             }
@@ -39,34 +42,34 @@ const globalOFunc = (body)=>{
             }
         }
         else{
-            options(body[i]);
+            options(body[i], 'green');
         }
     }
 
 };
-const options = (body)=>{
+const options = (body, color)=>{
     const funcObj = {FunctionDeclaration: functionDeclaration, VariableDeclaration: variableDeclaration, ExpressionStatement: assignmentExpression, WhileStatement: whileStatement, ReturnStatement: returnStatement, IfStatement: ifStatement};
-    funcObj[body.type](body);
+    funcObj[body.type](body, color);
 };
 
-const Body =(body)=>{
+const Body =(body, color)=>{
     for(let i=0; i<body.length; i++){
-        options(body[i]);
+        options(body[i], color);
     }
 };
 
-const functionDeclaration = (func) =>{
-    block(func.body.type,func.body);
+const functionDeclaration = (func, color) =>{
+    block(func.body.type,func.body, color);
 };
 
-const variableDeclaration = (vardec) => {
-    LetOrAssignment(vardec);
+const variableDeclaration = (vardec, color) => {
+    LetOrAssignment(vardec, color);
 };
 
-const LetOrAssignment = (exp) =>{
+const LetOrAssignment = (exp, color) =>{
     if(vertices.length===0|| vertices[vertices.length-1].type!=='LetOrAssignmentVertex'){
         index++;
-        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(exp)], index:index, name:'LetOrAssignmentVertex'+index};
+        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(exp)], index:index, name:'LetOrAssignmentVertex'+index, color: color};
         addEdge(vertex);
         vertices.push(vertex);
     }
@@ -76,21 +79,24 @@ const LetOrAssignment = (exp) =>{
     }
 };
 
-const assignmentExpression = (exp) => {
-    LetOrAssignment(exp);
+const assignmentExpression = (exp, color) => {
+    LetOrAssignment(exp, color);
 };
 
-const whileStatement = (stat) => {
+const whileStatement = (stat, color) => {
     index++;
-    let nullVertex = {type: 'NullVertex', index: index, name: 'NullVertex'+index};
+    let nullVertex = {type: 'NullVertex', index: index, name: 'NullVertex'+index, color:color};
     addEdge(nullVertex);
     vertices.push(nullVertex);
-    index++;
-    let vertex = {type: 'WhileVertex', test: escodegen.generate(stat.test), index: index, name:'WhileVertex'+index};
+    index++
+    let whileColor = colors[colorIndex];
+    colorIndex++;
+    let vertex = {type: 'WhileVertex', test: escodegen.generate(stat.test), index: index, name:'WhileVertex'+index, color: color};
+
     //vertex edge to points to consequent
     addEdge(vertex, true);
     vertices.push(vertex);
-    block(stat.body.type, stat.body);
+    block(stat.body.type, stat.body, whileColor);
     //add edge from last vertex in while to null
 
     edges[edges.length-1].to = nullVertex.name;
@@ -99,28 +105,39 @@ const whileStatement = (stat) => {
 
 };
 
-const ifStatement = (stat) => {
-    ifCount ++;
+const ifStatement = (stat, color) => {
+    let ifColor = colors[colorIndex];
+    colorIndex++;
+    IfCount++;
     let counter = 1;
     index++;
-    let vertex = {type: 'IfVertex', test: escodegen.generate((stat.test)), index: index, name: 'IfVertex'+index};
+    let vertex = {type: 'IfVertex', test: escodegen.generate((stat.test)), index: index, name: 'IfVertex'+index, color: color};
     //if edge to points to consequent
     addEdge(vertex, true);
     vertices.push(vertex);
-    block(stat.consequent.type, stat.consequent);
+    block(stat.consequent.type, stat.consequent, ifColor);
     if (stat.alternate !== null) {
-        stat.alternate.type==='IfStatement'? elseIfStatement(stat.alternate, vertex, counter): elseStatement(stat.alternate.type,stat.alternate, vertex, counter);
+        stat.alternate.type==='IfStatement'? elseIfStatement(stat.alternate, vertex, counter, color): elseStatement(stat.alternate.type,stat.alternate, vertex, counter, color);
     }
 };
 
-const elseIfStatement = (stat, ifVertex, counter) => {
+const elseIfStatement = (stat, ifVertex, counter, color) => {
+    let colorOfBeforeIfs = 'red';
+    for(let i = colorIndex-IfCount; i<IfCount; i++) {
+        if (colors[i] === 'green') {
+            colorOfBeforeIfs = 'green';
+            break;
+        }
+    }
+    let elseColor = colorOfBeforeIfs ==='green'? 'red': colors[colorIndex];
+    colorIndex++;
+    IfCount++;
     index++;
-    ifCount++;
-    let elseIfVertex = {type: 'IfVertex', test: escodegen.generate((stat.test)), index: index, name:'IfVertex'+index};
+    let elseIfVertex = {type: 'IfVertex', test: escodegen.generate((stat.test)), index: index, name:'IfVertex'+index, color: color};
     edges.push({from: ifVertex.name, to: elseIfVertex.name, isConsequent: false});
     edges.push({from: elseIfVertex.name, to: undefined, isConsequent: true});
-    vertices.push(elseIfVertex, true);
-    block(stat.consequent.type, stat.consequent);
+    vertices.push(elseIfVertex);
+    block(stat.consequent.type, stat.consequent, elseColor);
     if (stat.alternate !== null) {
         if(stat.alternate.type==='IfStatement'){ elseIfStatement(stat.alternate, elseIfVertex, counter+1);}
         else {
@@ -130,11 +147,18 @@ const elseIfStatement = (stat, ifVertex, counter) => {
 };
 
 const elseStatement = (type, elseStat, ifStat, counter) =>{
-   // let lastVertexIndex = vertices.length-1;
+    // let lastVertexIndex = vertices.length-1;
+    let color = 'green';
+    for(let i = colorIndex-IfCount; i<IfCount; i++){
+        if(colors[i]==='green') {
+            color = 'red';
+            break;
+        }
+    }
     edges.push({from: ifStat.name, to: undefined, isConsequent: false});
     if (type === 'BlockStatement'&&(elseStat.body[0].type === 'VariableDeclaration'||elseStat.body[0].type === 'ExpressionStatement' )) {
         index++;
-        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat.body[0])], index: index, name: 'LetOrAssignmentVertex'+index};
+        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat.body[0])], index: index, name: 'LetOrAssignmentVertex'+index, color: color};
         vertices.push(vertex);
         addEdge(vertex);
         //edges.push({from: vertex.name, to: undefined});
@@ -145,13 +169,13 @@ const elseStatement = (type, elseStat, ifStat, counter) =>{
     }
     else if(type === 'VariableDeclaration'|| type === 'ExpressionStatement'){
         index++;
-        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat)], index:index, name:'LetOrAssignmentVertex'+index };
+        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat)], index:index, name:'LetOrAssignmentVertex'+index, color:color };
         vertices.push(vertex);
-       // edges.push({from: vertex.name, to: undefined});
+        // edges.push({from: vertex.name, to: undefined});
         addEdge(vertex);
     }
     else{
-        block(type, elseStat);
+        block(type, elseStat, color);
     }
     // let elseName = lastEdge.to;
     //     // lastEdge.to = undefined;
@@ -162,17 +186,17 @@ const elseStatement = (type, elseStat, ifStat, counter) =>{
 
 const returnStatement = (stat) => {
     index++;
-    let returnVertex = {type: 'ReturnVertex', returnArgument: 'return ' + escodegen.generate(stat.argument), index: index, name: 'ReturnVertex'+index};
+    let returnVertex = {type: 'ReturnVertex', returnArgument: 'return ' + escodegen.generate(stat.argument), index: index, name: 'ReturnVertex'+index, color: 'green'};
     addEdge(returnVertex);
     vertices.push(returnVertex);
 };
 
-const block = (type, body) => {
+const block = (type, body, color) => {
     if (type === 'BlockStatement') {
-        Body(body.body);
+        Body(body.body, color);
     }
     else {
-        options(body);
+        options(body, color);
     }
 };
 
@@ -197,8 +221,8 @@ const addDummyVertex = (counter) =>{
             counter--;
         }
     }
-    let dummy = {type: 'DummyVertex', index: dummyIndex, name: 'DummyVertex' + dummyIndex };
-    vertices.push(dummy)
+    let dummy = {type: 'DummyVertex', index: dummyIndex, name: 'DummyVertex' + dummyIndex , color: 'green'};
+    vertices.push(dummy);
     addEdge(dummy);
 
 };
@@ -208,26 +232,30 @@ const chartVertices = () =>{
         let type = vertex.type;
         str = str + vertex.name + '=>';
         switch(type) {
-            case 'LetOrAssignmentVertex':
-                let arr = toStringArray(vertex.array);
-                str = str + 'operation: ' + arr ;
-                break;
-            case 'IfVertex':
-                str = str + 'condition: ' + vertex.test + '\n';
-                break;
-            case 'WhileVertex':
-                str = str + 'condition: ' + vertex.test + '\n';
-                break;
-            case 'NullVertex':
-                str = str + 'operation: NULL \n';
-                break;
-            case 'ReturnVertex':
-                str = str +  'operation: ' + vertex.returnArgument + '\n';
-                break;
-            case 'DummyVertex':
-                str = str +  'operation: !\n';
-                break;
+        case 'LetOrAssignmentVertex':
+            let arr = toStringArray(vertex.array);
+            str = str + 'operation: ' + arr ;
+            break;
+        case 'IfVertex':
+            str = str + 'condition: ' + vertex.test;
+            break;
+        case 'WhileVertex':
+            str = str + 'condition: ' + vertex.test;
+            break;
+        case 'NullVertex':
+            str = str + 'operation: NULL';
+            break;
+        case 'ReturnVertex':
+            str = str +  'operation: ' + vertex.returnArgument ;
+            break;
+        case 'DummyVertex':
+            str = str +  'end: .';
+            break;
         }
+        if(vertex.color==='green')
+            str = str + '|approved\n';
+        else
+            str = str + '|rejected\n';
     });
     return str;
 };
@@ -249,12 +277,20 @@ const chartEdges = () =>{
         else if(edge.from.includes('LetOrAssignmentVertex')||edge.from.includes('NullVertex')||edge.from.includes('DummyVertex')){
             str = str + edge.from + '->' + edge.to + '\n';
         }
-        else if(edge.from.includes('IfVertex')||edge.from.includes('WhileVertex')){
+        else if(edge.from.includes('IfVertex')){
             if(edge.isConsequent){
                 str = str + edge.from + '(yes)->' + edge.to + '\n';
             }
             else{
                 str = str + edge.from + '(no)->' + edge.to + '\n';
+            }
+        }
+        else if(edge.from.includes('WhileVertex')){
+            if(edge.isConsequent){
+                str = str + edge.from + '(yes, right)->' + edge.to + '\n';
+            }
+            else{
+                str = str + edge.from + '(no, bottom)->' + edge.to + '\n';
             }
         }
     });
@@ -264,8 +300,10 @@ const chartEdges = () =>{
 const makeStringForChart = () =>{
     let chartV = chartVertices();
     let chartE = chartEdges();
+
     console.log(chartV);
     console.log(chartE);
+    return[chartV, chartE];
 };
 
 
