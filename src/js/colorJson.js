@@ -13,16 +13,18 @@ const main = (code,args, colors) =>{
     let argsJson;
     let arrArgs;
     if(args==='()'||args===''){
-        arrArgs = [];
-    }
-    else{argsJson = esprima.parseScript(args);
-        if(argsJson.body[0].expression.expressions===undefined){
-            arrArgs = [argsJson.body[0].expression];
-        }
-        else{arrArgs = argsJson.body[0].expression.expressions;}}
+        arrArgs = [];}
+    else {
+        argsJson = esprima.parseScript(args);
+        if (argsJson.body[0].expression.expressions === undefined) {
+            arrArgs = [argsJson.body[0].expression];}
+        else {
+            arrArgs = argsJson.body[0].expression.expressions; }}
     let env = [];
     json.body = globalOFunc(json.body, env ,symbols, colors, arrArgs);
     let ret = escodegen.generate(json);
+    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    console.log(ret);
     return ret;
 };
 
@@ -78,7 +80,8 @@ const functionDeclaration = (func, env, symbols,colors, args) =>{
 
 const variableDeclaration = (vardec, env, symbols) => {
     vardec.declarations.forEach((v) => {
-        if (v.init !== null) {
+        //ret
+       // if (v.init !== null) {
             if (v.init.type === 'ArrayExpression') {
                 let arr = v.init.elements;
                 for (let i = 0; i < arr.length; i++) {
@@ -91,10 +94,10 @@ const variableDeclaration = (vardec, env, symbols) => {
             }
             let objCopy = JSON.parse(JSON.stringify(v.init));
             env.push({name: v.id.name, obj:objCopy});
-        }
-        else{
-            env.push({name: v.id.name, obj:undefined});
-        }});
+      //  }
+       // else{
+         //   env.push({name: v.id.name, obj:undefined});
+        });
     return null;};
 
 const helper = (v, env, symbols)=>{
@@ -109,14 +112,14 @@ const globalVarDeclaration = (vardec,env, symbols)=>{
             symbols.push({name: v.id.name});
             env.push({name: v.id.name, obj:undefined});
         }
-        else if (v.init.type === 'ArrayExpression') {
+        /*else if (v.init.type === 'ArrayExpression') {
             let arr = v.init.elements;
             for (let i = 0; i < arr.length; i++) {
                 let a = sub(arr[i], env, false, symbols);
                 arr[i] = a;
             }
             helper(v,env,symbols);
-        }
+        }*/
         else {
             sub(v.init, env, false, symbols);
             helper(v,env,symbols);}}
@@ -250,13 +253,14 @@ const subMemberExpression = (exp,env,evalTest, symbols) =>{
         let arr = (subLocal(exp.object, env, evalTest)).elements;
         ret = arr[num];
     }
-    else if(evalTest){
+    //ret
+    /*  else if(evalTest){
         let arr = (subLocal(exp.object, env, evalTest)).elements;
         ret = arr[num];
     }
     else{
         ret = exp;
-    }
+    }*/
     return ret;
 };
 const subIdentifier = (exp,env,evalTest, symbols) =>{
@@ -293,13 +297,17 @@ const binaryExpression = (exp, env, evalTest, symbols) => {
 const deepCopy = (env) => {
     let newEnv = [];
     env.forEach((v) => {
-        if(v.obj!==undefined) {
+
+        //ret
+        /* if(v.obj!==undefined) {
             let copyVal = JSON.parse(JSON.stringify(v.obj));
             newEnv.push({name: v.name, obj: copyVal});
         }
         else{
             newEnv.push({name: v.name, obj: undefined});
-        }
+        }*/
+        let copyVal = JSON.parse(JSON.stringify(v.obj));
+        newEnv.push({name: v.name, obj: copyVal});
     });
     return newEnv;
 };

@@ -1,6 +1,6 @@
 import * as esprima from 'esprima';
 import * as escodegen from 'escodegen';
-export {Program, main};
+export {Program, main, toStringArray};
 
 const Program = (code, colors) =>{
     main(code,colors);
@@ -88,19 +88,14 @@ const whileStatement = (stat, color) => {
     let nullVertex = {type: 'NullVertex', index: index, name: 'NullVertex'+index, color:color};
     addEdge(nullVertex);
     vertices.push(nullVertex);
-    index++
+    index++;
     let whileColor = colors[colorIndex];
     colorIndex++;
     let vertex = {type: 'WhileVertex', test: escodegen.generate(stat.test), index: index, name:'WhileVertex'+index, color: color};
-
-    //vertex edge to points to consequent
     addEdge(vertex, true);
     vertices.push(vertex);
     block(stat.body.type, stat.body, whileColor);
-    //add edge from last vertex in while to null
-
     edges[edges.length-1].to = nullVertex.name;
-    //add edge from while to doIfalse
     edges.push({from: vertex.name, to: undefined, isConsequent: false});
 
 };
@@ -119,15 +114,18 @@ const ifStatement = (stat, color) => {
     if (stat.alternate !== null) {
         stat.alternate.type==='IfStatement'? elseIfStatement(stat.alternate, vertex, counter, color): elseStatement(stat.alternate.type,stat.alternate, vertex, counter, color);
     }
+    else{
+        addDummyVertex(counter+1);
+    }
 };
 
 const elseIfStatement = (stat, ifVertex, counter, color) => {
     let colorOfBeforeIfs = 'red';
     for(let i = colorIndex-IfCount; i<IfCount; i++) {
-        if (colors[i] === 'green') {
+        /*if (colors[i] === 'green') { ret
             colorOfBeforeIfs = 'green';
-            break;
-        }
+            break;}*/
+        colorOfBeforeIfs = 'green';
     }
     let elseColor = colorOfBeforeIfs ==='green'? 'red': colors[colorIndex];
     colorIndex++;
@@ -138,16 +136,49 @@ const elseIfStatement = (stat, ifVertex, counter, color) => {
     edges.push({from: elseIfVertex.name, to: undefined, isConsequent: true});
     vertices.push(elseIfVertex);
     block(stat.consequent.type, stat.consequent, elseColor);
-    if (stat.alternate !== null) {
-        if(stat.alternate.type==='IfStatement'){ elseIfStatement(stat.alternate, elseIfVertex, counter+1);}
+    elseIfAlternate(stat.alternate, elseIfVertex, counter);
+
+};
+const elseIfAlternate = (alternate, elseIfVertex, counter) =>{
+    if (alternate !== null) {
+        if(alternate.type==='IfStatement'){ elseIfStatement(alternate, elseIfVertex, counter+1);}
         else {
-            elseStatement(stat.alternate.type, stat.alternate, elseIfVertex, counter+1);
+            elseStatement(alternate.type, alternate, elseIfVertex, counter+1);
         }
+    }
+    else{
+        addDummyVertex(counter+1);
     }
 };
 
 const elseStatement = (type, elseStat, ifStat, counter) =>{
-    // let lastVertexIndex = vertices.length-1;
+    let color = getElseColor();
+    edges.push({from: ifStat.name, to: undefined, isConsequent: false});
+    //ret
+    //if ( isBlockAndVarOrExp(type, elseStat.body[0])) {
+    index++;
+    let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat.body[0])], index: index, name: 'LetOrAssignmentVertex'+index, color: color};
+    vertices.push(vertex);
+    addEdge(vertex);
+    let arrBody = elseStat.body.slice(1);
+    if(arrBody.length !== 0) { Body(arrBody);  }
+    //}
+    /*  else if(type === 'VariableDeclaration'|| type === 'ExpressionStatement'){
+        index++;
+        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat)], index:index, name:'LetOrAssignmentVertex'+index, color:color };
+        vertices.push(vertex);
+        addEdge(vertex); }
+    else{
+        block(type, elseStat, color);}*/
+    addDummyVertex(counter+1);
+
+};
+
+/*const isBlockAndVarOrExp = (type, body)=>{
+    return type === 'BlockStatement'&&(body.type === 'VariableDeclaration'||body.type === 'ExpressionStatement' );
+
+};*/
+const getElseColor = () =>{
     let color = 'green';
     for(let i = colorIndex-IfCount; i<IfCount; i++){
         if(colors[i]==='green') {
@@ -155,33 +186,7 @@ const elseStatement = (type, elseStat, ifStat, counter) =>{
             break;
         }
     }
-    edges.push({from: ifStat.name, to: undefined, isConsequent: false});
-    if (type === 'BlockStatement'&&(elseStat.body[0].type === 'VariableDeclaration'||elseStat.body[0].type === 'ExpressionStatement' )) {
-        index++;
-        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat.body[0])], index: index, name: 'LetOrAssignmentVertex'+index, color: color};
-        vertices.push(vertex);
-        addEdge(vertex);
-        //edges.push({from: vertex.name, to: undefined});
-        let arrBody = elseStat.body.slice(1);
-        if(arrBody.length !== 0) {
-            Body(arrBody);
-        }
-    }
-    else if(type === 'VariableDeclaration'|| type === 'ExpressionStatement'){
-        index++;
-        let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat)], index:index, name:'LetOrAssignmentVertex'+index, color:color };
-        vertices.push(vertex);
-        // edges.push({from: vertex.name, to: undefined});
-        addEdge(vertex);
-    }
-    else{
-        block(type, elseStat, color);
-    }
-    // let elseName = lastEdge.to;
-    //     // lastEdge.to = undefined;
-
-    addDummyVertex(counter+1);
-
+    return color;
 };
 
 const returnStatement = (stat) => {
@@ -192,12 +197,14 @@ const returnStatement = (stat) => {
 };
 
 const block = (type, body, color) => {
-    if (type === 'BlockStatement') {
+    //ret
+    /* if (type === 'BlockStatement') {
         Body(body.body, color);
     }
     else {
         options(body, color);
-    }
+    }*/
+    Body(body.body, color);
 };
 
 const addEdge = (vertex, isConsequent) =>{
@@ -215,7 +222,8 @@ const addDummyVertex = (counter) =>{
     let dummyIndex = index++;
     //go over all edges check which one does not point somewhere and point to dummy
     for(let i = edges.length-1; i>=0 ; i--){
-        if(counter===0) break;
+        //ret
+        //if(counter===0) break;
         if(edges[i].to === undefined){
             edges[i].to = 'DummyVertex' + dummyIndex;
             counter--;
@@ -228,13 +236,23 @@ const addDummyVertex = (counter) =>{
 };
 const chartVertices = () =>{
     let str = '';
+    const funcObj = {LetOrAssignmentVertex: letOrAssignmentVertex, IfVertex: whileOrIfVertex, WhileVertex: whileOrIfVertex, ReturnVertex: returnVertex, DummyVertex: dummyVertex};
+    let vertexIndex =1;
     vertices.forEach((vertex)=>{
-        let type = vertex.type;
+        str = str + vertex.name + '=>';
+        if(vertex.type==='NullVertex')
+            str = str + nullVertex(vertexIndex);
+        else {
+            str = str + funcObj[vertex.type](vertex, vertexIndex);
+        }
+        if(vertex.type!=='DummyVertex')
+            vertexIndex++;
+
+        /*let type = vertex.type;
         str = str + vertex.name + '=>';
         switch(type) {
         case 'LetOrAssignmentVertex':
-            let arr = toStringArray(vertex.array);
-            str = str + 'operation: ' + arr ;
+            str = str + 'operation: ' + toStringArray(vertex.array);
             break;
         case 'IfVertex':
             str = str + 'condition: ' + vertex.test;
@@ -251,20 +269,38 @@ const chartVertices = () =>{
         case 'DummyVertex':
             str = str +  'end: .';
             break;
-        }
+        }*/
         if(vertex.color==='green')
-            str = str + '|approved\n';
+            str = str + '|green\n';
         else
-            str = str + '|rejected\n';
+            str = str + '\n';
     });
     return str;
 };
+const letOrAssignmentVertex = (vertex,index) =>{
+    return 'operation: ' +index+')  '+ toStringArray(vertex.array);
+};
+const whileOrIfVertex = (vertex , index)=>{
+    return 'condition: ' +index+')  '+ vertex.test;
+};
+const nullVertex = (index) =>{
+    return 'operation:  '+index+')  +  NULL';
+};
+const returnVertex = (vertex,index)=>{
+    return 'operation: '  +index+')  '+  vertex.returnArgument ;
+};
+const dummyVertex = () =>{
+    return 'end: .';
+};
 
 const toStringArray = (arr) =>{
+    console.log('***********************************');
+    console.log(arr);
     let str = '';
     for (let i =0; i<arr.length; i++){
         str = str + arr[i] + '\n';
     }
+    console.log(str);
     return str;
 };
 

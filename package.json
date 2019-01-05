@@ -8,7 +8,7 @@
         "start:dev": "webpack --watch",
         "test:watch": "mocha-webpack --watch",
         "test": "mocha-webpack --webpack-config webpack.test.config.js --reporter=json",
-        "coverage": "cross-env NODE_ENV=coverage nyc --reporter=json-summary npm run test",
+        "coverage": "cross-env NODE_ENV=coverage nyc --reporter=html npm run test",
         "lint": "eslint -f json -o ./lint/eslint-report.json src"
     },
     "nyc": {
@@ -23,6 +23,8 @@
     "dependencies": {
         "escodegen": "^1.11.0",
         "esprima": "^4.0.0",
+        "flowchart": "^1.2.0",
+        "flowchart.js": "^1.11.3",
         "jquery": "^3.3.1"
     },
     "devDependencies": {
