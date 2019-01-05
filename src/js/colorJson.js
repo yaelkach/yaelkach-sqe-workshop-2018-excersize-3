@@ -23,8 +23,6 @@ const main = (code,args, colors) =>{
     let env = [];
     json.body = globalOFunc(json.body, env ,symbols, colors, arrArgs);
     let ret = escodegen.generate(json);
-    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-    console.log(ret);
     return ret;
 };
 
@@ -81,23 +79,22 @@ const functionDeclaration = (func, env, symbols,colors, args) =>{
 const variableDeclaration = (vardec, env, symbols) => {
     vardec.declarations.forEach((v) => {
         //ret
-       // if (v.init !== null) {
-            if (v.init.type === 'ArrayExpression') {
-                let arr = v.init.elements;
-                for (let i = 0; i < arr.length; i++) {
-                    let a = sub(arr[i], env, false, symbols);
-                    arr[i] = a;
-                }
-            }
-            else {
-                sub(v.init, env, false, symbols);
-            }
-            let objCopy = JSON.parse(JSON.stringify(v.init));
-            env.push({name: v.id.name, obj:objCopy});
-      //  }
-       // else{
-         //   env.push({name: v.id.name, obj:undefined});
-        });
+        // if (v.init !== null) {
+        if (v.init.type === 'ArrayExpression') {
+            let arr = v.init.elements;
+            for (let i = 0; i < arr.length; i++) {
+                let a = sub(arr[i], env, false, symbols);
+                arr[i] = a;
+            }}
+        else {
+            sub(v.init, env, false, symbols);
+        }
+        let objCopy = JSON.parse(JSON.stringify(v.init));
+        env.push({name: v.id.name, obj:objCopy});
+        //  }
+        // else{
+        //   env.push({name: v.id.name, obj:undefined});
+    });
     return null;};
 
 const helper = (v, env, symbols)=>{

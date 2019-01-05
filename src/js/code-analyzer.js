@@ -154,15 +154,13 @@ const elseIfAlternate = (alternate, elseIfVertex, counter) =>{
 const elseStatement = (type, elseStat, ifStat, counter) =>{
     let color = getElseColor();
     edges.push({from: ifStat.name, to: undefined, isConsequent: false});
-    //ret
-    //if ( isBlockAndVarOrExp(type, elseStat.body[0])) {
+    // ret if ( isBlockAndVarOrExp(type, elseStat.body[0])) {
     index++;
     let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat.body[0])], index: index, name: 'LetOrAssignmentVertex'+index, color: color};
     vertices.push(vertex);
     addEdge(vertex);
     let arrBody = elseStat.body.slice(1);
     if(arrBody.length !== 0) { Body(arrBody);  }
-    //}
     /*  else if(type === 'VariableDeclaration'|| type === 'ExpressionStatement'){
         index++;
         let vertex = {type: 'LetOrAssignmentVertex', array: [escodegen.generate(elseStat)], index:index, name:'LetOrAssignmentVertex'+index, color:color };
@@ -217,8 +215,9 @@ const addEdge = (vertex, isConsequent) =>{
     }
 };
 
-const addDummyVertex = (counter) =>{
-    counter++;
+//return counter to arguments
+const addDummyVertex = () =>{
+    //   counter++;
     let dummyIndex = index++;
     //go over all edges check which one does not point somewhere and point to dummy
     for(let i = edges.length-1; i>=0 ; i--){
@@ -226,7 +225,7 @@ const addDummyVertex = (counter) =>{
         //if(counter===0) break;
         if(edges[i].to === undefined){
             edges[i].to = 'DummyVertex' + dummyIndex;
-            counter--;
+            //  counter--;
         }
     }
     let dummy = {type: 'DummyVertex', index: dummyIndex, name: 'DummyVertex' + dummyIndex , color: 'green'};
@@ -247,29 +246,6 @@ const chartVertices = () =>{
         }
         if(vertex.type!=='DummyVertex')
             vertexIndex++;
-
-        /*let type = vertex.type;
-        str = str + vertex.name + '=>';
-        switch(type) {
-        case 'LetOrAssignmentVertex':
-            str = str + 'operation: ' + toStringArray(vertex.array);
-            break;
-        case 'IfVertex':
-            str = str + 'condition: ' + vertex.test;
-            break;
-        case 'WhileVertex':
-            str = str + 'condition: ' + vertex.test;
-            break;
-        case 'NullVertex':
-            str = str + 'operation: NULL';
-            break;
-        case 'ReturnVertex':
-            str = str +  'operation: ' + vertex.returnArgument ;
-            break;
-        case 'DummyVertex':
-            str = str +  'end: .';
-            break;
-        }*/
         if(vertex.color==='green')
             str = str + '|green\n';
         else
@@ -294,54 +270,53 @@ const dummyVertex = () =>{
 };
 
 const toStringArray = (arr) =>{
-    console.log('***********************************');
-    console.log(arr);
     let str = '';
     for (let i =0; i<arr.length; i++){
         str = str + arr[i] + '\n';
     }
-    console.log(str);
     return str;
 };
 
 const chartEdges = () =>{
     let str = '';
     edges.forEach((edge)=>{
-        let from = edge.from;
         if(edge.to === undefined){
-        }
-        else if(edge.from.includes('LetOrAssignmentVertex')||edge.from.includes('NullVertex')||edge.from.includes('DummyVertex')){
-            str = str + edge.from + '->' + edge.to + '\n';
+            str = str + '';
         }
         else if(edge.from.includes('IfVertex')){
-            if(edge.isConsequent){
-                str = str + edge.from + '(yes)->' + edge.to + '\n';
-            }
-            else{
-                str = str + edge.from + '(no)->' + edge.to + '\n';
-            }
+            str = str + ifEdge(edge);
+
         }
         else if(edge.from.includes('WhileVertex')){
-            if(edge.isConsequent){
-                str = str + edge.from + '(yes, right)->' + edge.to + '\n';
-            }
-            else{
-                str = str + edge.from + '(no, bottom)->' + edge.to + '\n';
-            }
+            str = str + whileEdge(edge);
+        }
+        else{
+            str = str + edge.from + '->' + edge.to + '\n';
         }
     });
     return str;
 };
 
+const ifEdge =(edge) =>{
+    if(edge.isConsequent){
+        return edge.from + '(yes)->' + edge.to + '\n';
+    }
+    else{
+        return edge.from + '(no)->' + edge.to + '\n';
+    }
+};
+const whileEdge = (edge) =>{
+    if(edge.isConsequent){
+        return edge.from + '(yes, right)->' + edge.to + '\n';
+    }
+    else{
+        return edge.from + '(no, bottom)->' + edge.to + '\n';
+    }
+};
+
 const makeStringForChart = () =>{
     let chartV = chartVertices();
     let chartE = chartEdges();
-
-    console.log(chartV);
-    console.log(chartE);
     return[chartV, chartE];
 };
-
-
-//cond2(yes)->para
 
